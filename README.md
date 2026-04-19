@@ -38,7 +38,7 @@ Refer:
 | api/ | Mock product API |
 | data_lake/ | Raw data storage |
 | common/ | Utility functions |
-| docs/ | Architecture diagrams |
+| docs/ | Final presentation document |
 
 ---
 
