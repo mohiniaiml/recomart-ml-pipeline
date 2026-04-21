@@ -1,10 +1,16 @@
 # ingestion/process_clickstream_stream.py
 import os, json, time
 import pandas as pd
-from common.utils import ensure_dir, today_partition
+from src.common.utils import ensure_dir, today_partition
+from src.config.config_loader import load_config
 
-SRC_FILE = "simulators/output/clickstream_events.jsonl"
-DL_BASE = "data_lake/raw/clickstream"
+config = load_config()
+
+simulator_output = config["paths"]["simulator_output"]
+SRC_FILE = os.path.join(simulator_output, "clickstream_events.json")
+
+data_lake_path = config["paths"]["data_lake"]
+DL_BASE = os.path.join(data_lake_path, "raw", "clickstream")
 
 # simple offset tracking
 OFFSET_FILE = "ingestion/.clickstream_offset"

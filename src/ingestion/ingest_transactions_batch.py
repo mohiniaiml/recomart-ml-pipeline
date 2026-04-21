@@ -1,9 +1,15 @@
 # ingestion/ingest_transactions_batch.py
 import os, pandas as pd, time
-from common.utils import ensure_dir, today_partition
+from src.common.utils import ensure_dir, today_partition
+from src.config.config_loader import load_config
 
-SRC_FILE = "simulators/output/transactions_generated.csv"
-DL_BASE = "data_lake/raw/transactions"
+config = load_config()
+
+simulator_output = config["paths"]["simulator_output"]
+SRC_FILE = os.path.join(simulator_output, "transactions_generated.csv")
+
+data_lake_path = config["paths"]["data_lake"]
+DL_BASE = os.path.join(data_lake_path, "raw", "transactions")
 
 def ingest():
     if not os.path.exists(SRC_FILE):

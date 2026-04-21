@@ -1,10 +1,13 @@
 # simulators/clickstream_simulator.py
 import json, random, time, os
-from common.utils import ensure_dir
+from src.common.utils import ensure_dir
 from datetime import datetime
 
-OUT_DIR = "simulators/output"
-OUT_FILE = os.path.join(OUT_DIR, "clickstream_events.jsonl")
+from src.config.config_loader import load_config
+
+config = load_config()
+simulator_output = config["paths"]["simulator_output"]
+OUT_FILE = os.path.join(simulator_output, "clickstream_events.json")
 
 EVENTS = ["view", "click", "add_to_cart"]
 
@@ -20,7 +23,7 @@ def generate_event():
     }
 
 def run(interval_sec=1):
-    ensure_dir(OUT_DIR)
+    ensure_dir(simulator_output)
     print(f"Writing to {OUT_FILE}")
     while True:
         with open(OUT_FILE, "a") as f:

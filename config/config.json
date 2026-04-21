@@ -1,0 +1,10 @@
+{
+  "paths": {
+    "data_lake": "../data_lake",
+    "simulator_output": "../simulators/output"
+  },
+  "storage": {
+    "type": "local",
+    "base_path": "bronze"
+  }
+}

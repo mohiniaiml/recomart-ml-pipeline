@@ -28,15 +28,17 @@ The pipeline is designed to be scalable, modular, and reproducible.
 
 ## 📂 Project Structure
 
+```
 recomart-ml-pipeline/
-├── data_lake/
-├── simulators/
-├── ingestion/
-├── api/
-├── common/
-├── docs/
-├── requirements.txt
-└── README.md
+  ├── src/
+    ├── simulators/
+    ├── ingestion/
+    ├── api/
+    ├── common/
+  ├── docs/
+  ├── requirements.txt
+  └── README.md
+```
 
 ---
 
@@ -48,28 +50,102 @@ pip install -r requirements.txt
 
 ---
 
-## 🔄 Running Pipeline
+## 🔄 1. Ingestion
+This step ingests data into raw area of data lake
+
+### ▶️ Run
 
 1. Start API:
-python api/product_api.py
+
+```
+python src/api/product_api.py
+```
 
 2. Start simulators:
-python simulators/transaction_simulator.py
-python simulators/clickstream_simulator.py
+
+```
+python -m src.simulators.transaction_simulator
+
+python -m src.simulators.clickstream_simulator
+```
 
 3. Start ingestion:
-python ingestion/ingest_transactions_batch.py
-python ingestion/ingest_products_api.py
-python ingestion/process_clickstream_stream.py
 
----
+```
+python -m src.ingestion.ingest_transactions_batch
 
-## 📊 Output
+python -m src.ingestion.ingest_products_api
+
+python -m src.ingestion.process_clickstream_stream
+```
+
+### 📊 Output
 
 data_lake/raw/
 - transactions/
 - products/
 - clickstream/
+
+---
+## 2. Raw Data Storage
+This step moves data from raw to bronze - there is still no pre-preocessing
+
+### ▶️ Run
+
+```
+ python -m src.ingestion.run_bronze
+```
+
+### 📊 Output
+
+data_lake/bronze/
+- source=clickstream/type=raw/year=2026/month=04/day=21/
+    - events_001.json
+- source=products/type=raw/year=2026/month=04/day=21/
+    - products.csv
+- source=transactions/type=raw/year=2026/month=04/day=21/
+    - tx_001.json
+
+---
+
+## 🧪 3. Data Profiling & Validation
+
+This step validates Bronze data using Great Expectations and generates a PDF report.
+
+### ▶️ Run
+
+```
+python -m src.validation.validate_bronze
+```
+
+### 📄 Output
+
+```
+reports/data_quality_report.pdf
+```
+
+---
+
+## ⚪ 4. Silver Layer: Data Preparation & EDA
+
+Transforms Bronze data into cleaned and structured Silver dataset.
+
+### ▶️ Run
+
+```
+python -m src.processing.silver_transform
+```
+
+### 📊 Output
+
+- Cleaned dataset → data_lake/silver/
+- EDA plots → reports/eda/
+
+## 📓 Notebook (Recommended)
+
+```
+notebooks/silver_eda.ipynb
+```
 
 ---
 

@@ -1,9 +1,14 @@
 # ingestion/ingest_products_api.py
 import requests, os, pandas as pd, time
-from common.utils import ensure_dir, today_partition
+from src.common.utils import ensure_dir, today_partition
+from src.config.config_loader import load_config
+
+config = load_config()
+
+data_lake_path = config["paths"]["data_lake"]
+DL_BASE = os.path.join(data_lake_path, "raw", "products")
 
 API_URL = "http://localhost:5000/products"
-DL_BASE = "data_lake/raw/products"
 
 def ingest():
     try:

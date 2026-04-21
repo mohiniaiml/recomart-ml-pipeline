@@ -1,12 +1,15 @@
 # simulators/transaction_simulator.py
 import csv, random, time, os
-from common.utils import ensure_dir, now_ts
+from src.common.utils import ensure_dir, now_ts
+from src.config.config_loader import load_config
 
-OUT_DIR = "simulators/output"
-OUT_FILE = os.path.join(OUT_DIR, "transactions_generated.csv")
+config = load_config()
+
+simulator_output = config["paths"]["simulator_output"]
+OUT_FILE = os.path.join(simulator_output, "transactions_generated.csv")
 
 def init_file():
-    ensure_dir(OUT_DIR)
+    ensure_dir(simulator_output)
     if not os.path.exists(OUT_FILE):
         with open(OUT_FILE, "w", newline="") as f:
             writer = csv.writer(f)
