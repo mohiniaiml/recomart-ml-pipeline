@@ -44,9 +44,11 @@ recomart-ml-pipeline/
 
 ## ⚙️ Setup
 
+```
 git clone https://github.com/mohiniaiml/recomart-ml-pipeline.git
 cd recomart-ml-pipeline
 pip install -r requirements.txt
+```
 
 ---
 
