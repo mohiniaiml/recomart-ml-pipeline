@@ -1,0 +1,35 @@
+{
+  "version": "v1",
+  "features": [
+    {
+      "name": "activity_count",
+      "entity": "user",
+      "source": "clickstream + transactions",
+      "transformation": "count(product_id) grouped by user_id"
+    },
+    {
+      "name": "avg_rating",
+      "entity": "user/item",
+      "source": "transactions",
+      "transformation": "mean(rating)"
+    },
+    {
+      "name": "purchase_count",
+      "entity": "user/item",
+      "source": "transactions",
+      "transformation": "count(non-null purchase_amount)"
+    },
+    {
+      "name": "item_popularity",
+      "entity": "item",
+      "source": "clickstream + transactions",
+      "transformation": "count(user_id)"
+    },
+    {
+      "name": "interaction_count",
+      "entity": "user-item",
+      "source": "combined data",
+      "transformation": "count grouped by user_id, product_id"
+    }
+  ]
+}

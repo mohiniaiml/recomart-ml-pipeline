@@ -1,6 +1,7 @@
 import os
 import shutil
 from datetime import datetime
+from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
 # Optional cloud import
@@ -29,6 +30,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
     config = load_config(config_path)
     storage_type = config["storage"]["type"]
     input_base = config["paths"]["data_lake"]
+    versions = config["versions"]
 
     sources = ["clickstream", "products", "transactions"]
 
@@ -44,13 +46,16 @@ def move_to_bronze_configurable(config_path="config/config.json"):
     # Traverse sources
     # -----------------------------
     for source in sources:
-        source_path = os.path.join(input_base, "raw", source)
+        version = versions.get(source, "v1")
+        source_path = os.path.join(input_base, "raw", source, version)
 
         if not os.path.exists(source_path):
             print(f"Skipping {source}, path not found: {source_path}")
             continue
-
-        # 🔹 Iterate datetime folders
+        
+        print(f"Processing {source} version: {version}")
+        
+        # Iterate datetime folders
         for dt_folder in os.listdir(source_path):
             dt_path = os.path.join(source_path, dt_folder)
 
@@ -59,7 +64,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
 
             dt = parse_datetime_folder(dt_folder)
 
-            # 🔹 Iterate files inside datetime folder
+            # Iterate files inside datetime folder
             for file_name in os.listdir(dt_path):
                 file_path = os.path.join(dt_path, file_name)
 
@@ -68,7 +73,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
 
                 # Partition based on datetime folder
                 partition_path = (
-                    f"source={source}/type=raw/"
+                    f"source={source}/version={version}/type=raw/"
                     f"year={dt.year}/month={dt.month:02d}/day={dt.day:02d}"
                 )
 
@@ -84,6 +89,15 @@ def move_to_bronze_configurable(config_path="config/config.json"):
 
                     print(f"[LOCAL] {file_name} → {target_dir}")
 
+                    # Lineage logging
+                    log_lineage(
+                        dataset_name=source,
+                        version=version,
+                        source=f"raw/{source}/{version}",
+                        transformation="bronze partitioning",
+                        output_path=target_file
+                    )
+
                 # -----------------------------
                 # S3 STORAGE
                 # -----------------------------
@@ -95,6 +109,15 @@ def move_to_bronze_configurable(config_path="config/config.json"):
                     s3.upload_file(file_path, bucket, s3_key)
 
                     print(f"[S3] {file_name} → s3://{bucket}/{s3_key}")
+
+                    # Lineage logging
+                    log_lineage(
+                        dataset_name=source,
+                        version=version,
+                        source=f"raw/{source}/{version}",
+                        transformation="bronze partitioning",
+                        output_path=target_file
+                    )
 
                 else:
                     raise ValueError("Unsupported storage type")

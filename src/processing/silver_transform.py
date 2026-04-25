@@ -2,10 +2,14 @@ import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from datetime import datetime
+
 from src.config.config_loader import load_config
+from src.lineage.lineage_logger import log_lineage
+
 
 # -----------------------------
-# Load Bronze Data
+# Load Bronze Data (dataset + version aware)
 # -----------------------------
 def load_bronze_data(base_path):
     all_data = []
@@ -23,8 +27,12 @@ def load_bronze_data(base_path):
                     continue
 
                 all_data.append(df)
+
             except Exception as e:
                 print(f"Skipping {path}: {e}")
+
+    if not all_data:
+        return None
 
     return pd.concat(all_data, ignore_index=True)
 
@@ -33,15 +41,11 @@ def load_bronze_data(base_path):
 # Data Cleaning
 # -----------------------------
 def clean_data(df):
-    print("Cleaning data...")
-
-    # Drop duplicates
     df = df.drop_duplicates()
 
-    # Handle missing values
-    df = df.dropna(subset=['user_id', 'product_id'])
+    if 'user_id' in df.columns and 'product_id' in df.columns:
+        df = df.dropna(subset=['user_id', 'product_id'])
 
-    # Fill optional fields
     if 'rating' in df.columns:
         df['rating'] = df['rating'].fillna(df['rating'].mean())
 
@@ -52,8 +56,6 @@ def clean_data(df):
 # Encoding
 # -----------------------------
 def encode_data(df):
-    print("Encoding categorical variables...")
-
     if 'category' in df.columns:
         df['category_encoded'] = df['category'].astype('category').cat.codes
 
@@ -64,8 +66,6 @@ def encode_data(df):
 # Normalization
 # -----------------------------
 def normalize_data(df):
-    print("Normalizing numerical features...")
-
     if 'price' in df.columns:
         df['price_norm'] = (df['price'] - df['price'].min()) / (
             df['price'].max() - df['price'].min()
@@ -79,89 +79,99 @@ def normalize_data(df):
 
 
 # -----------------------------
-# EDA
+# Save Silver Data (version aware)
 # -----------------------------
-def run_eda(df, output_dir="reports/eda"):
+def save_silver(df, base_path, dataset, version):
+    date = datetime.now().strftime("%Y-%m-%d")
+
+    output_dir = os.path.join(base_path, dataset, version, date)
     os.makedirs(output_dir, exist_ok=True)
 
-    print("Running EDA...")
-
-    # Interaction distribution
-    if 'rating' in df.columns:
-        plt.figure()
-        df['rating'].hist()
-        plt.title("Rating Distribution")
-        plt.savefig(f"{output_dir}/rating_distribution.png")
-
-    # Item popularity
-    if 'product_id' in df.columns:
-        plt.figure()
-        df['product_id'].value_counts().head(20).plot(kind='bar')
-        plt.title("Top 20 Popular Items")
-        plt.savefig(f"{output_dir}/item_popularity.png")
-
-    # Sparsity
-    if 'user_id' in df.columns and 'product_id' in df.columns:
-        interaction_matrix = df.pivot_table(
-            index='user_id',
-            columns='product_id',
-            aggfunc='size',
-            fill_value=0
-        )
-
-        sparsity = 1.0 - (interaction_matrix.astype(bool).sum().sum() /
-                         interaction_matrix.size)
-
-        print(f"Sparsity: {sparsity:.4f}")
-
-        plt.figure()
-        plt.imshow(interaction_matrix.iloc[:50, :50])
-        plt.title("User-Item Interaction Heatmap (sample)")
-        plt.savefig(f"{output_dir}/interaction_heatmap.png")
-
-
-# -----------------------------
-# Save Silver Data
-# -----------------------------
-def save_silver(df, output_path):
-    os.makedirs(output_path, exist_ok=True)
-
-    file_path = os.path.join(output_path, "silver_dataset.parquet")
+    file_path = os.path.join(output_dir, "data.parquet")
 
     try:
         df.to_parquet(file_path, index=False)
-        print(f"Saved as Parquet: {file_path}")
     except ImportError:
-        fallback = file_path.replace(".parquet", ".csv")
-        df.to_csv(fallback, index=False)
-        print(f"PyArrow missing → saved as CSV: {fallback}")
+        file_path = file_path.replace(".parquet", ".csv")
+        df.to_csv(file_path, index=False)
+
+    return file_path
 
 
 # -----------------------------
-# Main Pipeline
+# EDA (optional per dataset)
+# -----------------------------
+def run_eda(df, dataset, output_dir="reports/eda"):
+    os.makedirs(output_dir, exist_ok=True)
+
+    if 'rating' in df.columns:
+        plt.figure()
+        df['rating'].hist()
+        plt.title(f"{dataset} Rating Distribution")
+        plt.savefig(f"{output_dir}/{dataset}_rating_distribution.png")
+
+    if 'product_id' in df.columns:
+        plt.figure()
+        df['product_id'].value_counts().head(20).plot(kind='bar')
+        plt.title(f"{dataset} Top Items")
+        plt.savefig(f"{output_dir}/{dataset}_item_popularity.png")
+
+
+# -----------------------------
+# Main Pipeline (dataset-wise)
 # -----------------------------
 def main():
     config = load_config()
 
-    bronze_path = os.path.join(
-        config["paths"]["data_lake"],
-        config["storage"]["base_path"]
-    )
+    data_lake = config["paths"]["data_lake"]
+    bronze_base = os.path.join(data_lake, config["storage"]["base_path"])
+    silver_base = os.path.join(data_lake, "silver")
 
-    silver_path = os.path.join(
-        config["paths"]["data_lake"],
-        "silver"
-    )
+    versions = config["versions"]
 
-    df = load_bronze_data(bronze_path)
+    datasets = ["transactions", "clickstream", "products"]
 
-    df = clean_data(df)
-    df = encode_data(df)
-    df = normalize_data(df)
+    for dataset in datasets:
 
-    run_eda(df)
+        version = versions.get(dataset, "v1")
 
-    save_silver(df, silver_path)
+        bronze_path = os.path.join(
+            bronze_base,
+            f"source={dataset}",
+            f"version={version}"
+        )
+
+        if not os.path.exists(bronze_path):
+            print(f"Skipping {dataset}, no bronze data")
+            continue
+
+        print(f"Processing {dataset} version {version}")
+
+        df = load_bronze_data(bronze_path)
+
+        if df is None:
+            continue
+
+        # Transformations
+        df = clean_data(df)
+        df = encode_data(df)
+        df = normalize_data(df)
+
+        run_eda(df, dataset)
+
+        # Save silver
+        output_path = save_silver(df, silver_base, dataset, version)
+
+        # 🔷 Lineage logging
+        log_lineage(
+            dataset_name=dataset,
+            version=version,
+            source=f"bronze/source={dataset}/version={version}",
+            transformation="clean + encode + normalize",
+            output_path=output_path
+        )
+
+        print(f"Silver created → {output_path}")
 
 
 if __name__ == "__main__":

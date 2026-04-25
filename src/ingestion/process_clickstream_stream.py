@@ -2,15 +2,17 @@
 import os, json, time
 import pandas as pd
 from src.common.utils import ensure_dir, today_partition
+from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
 config = load_config()
 
 simulator_output = config["paths"]["simulator_output"]
+VERSION = config["versions"]["clickstream"]
 SRC_FILE = os.path.join(simulator_output, "clickstream_events.json")
 
 data_lake_path = config["paths"]["data_lake"]
-DL_BASE = os.path.join(data_lake_path, "raw", "clickstream")
+DL_BASE = os.path.join(data_lake_path, "raw", "clickstream", VERSION)
 
 # simple offset tracking
 OFFSET_FILE = "ingestion/.clickstream_offset"
@@ -43,6 +45,13 @@ def process_batch(batch_lines):
     else:
         df.to_csv(out_path, index=False)
 
+    log_lineage(
+        dataset_name="clickstream",
+        version=VERSION,
+        source="clickstream_simulator",
+        transformation="stream processing",
+        output_path=out_path
+    )
     print(f"Wrote {len(df)} events → {out_path}")
 
 def run(poll_sec=5, batch_size=100):

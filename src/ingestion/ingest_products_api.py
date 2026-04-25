@@ -1,12 +1,13 @@
 # ingestion/ingest_products_api.py
 import requests, os, pandas as pd, time
 from src.common.utils import ensure_dir, today_partition
+from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
 config = load_config()
-
+VERSION = config["versions"]["products"]
 data_lake_path = config["paths"]["data_lake"]
-DL_BASE = os.path.join(data_lake_path, "raw", "products")
+DL_BASE = os.path.join(data_lake_path, "raw", "products", VERSION)
 
 API_URL = "http://localhost:5000/products"
 
@@ -23,6 +24,15 @@ def ingest():
 
         out_path = os.path.join(out_dir, "data.csv")
         df.to_csv(out_path, index=False)
+
+        log_lineage(
+            dataset_name="products",
+            version=VERSION,
+            source="product_api",
+            transformation="API ingestion",
+            output_path=out_path
+        )
+
         print(f"Fetched {len(df)} products → {out_path}")
     except Exception as e:
         print(f"Product ingestion failed: {e}")

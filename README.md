@@ -143,6 +143,8 @@ python -m src.processing.silver_transform
 - Cleaned dataset → data_lake/silver/
 - EDA plots → reports/eda/
 
+---
+
 ## Feature Engineering Pipeline
 
 Run the scheduled feature pipeline:
@@ -164,6 +166,21 @@ features/features.db
 ```
 notebooks/silver_eda.ipynb
 ```
+
+---
+
+## 🔷 Feature Store
+
+▶️ Running Feature Retrieval Demo
+
+```
+python -m src.features.store.demo
+```
+
+### 📊 Feature Tables
+- user_features
+- item_features
+- interaction_features
 
 ---
 
