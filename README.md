@@ -141,6 +141,22 @@ python -m src.processing.silver_transform
 - Cleaned dataset → data_lake/silver/
 - EDA plots → reports/eda/
 
+## Feature Engineering Pipeline
+
+Run the scheduled feature pipeline:
+
+```
+python -m src.features.scheduler
+```
+
+This will:
+- Read latest data from data lake
+- Generate user, item, and interaction features
+- Store features in SQLite database
+
+### 📊 Output
+features/features.db
+
 ## 📓 Notebook (Recommended)
 
 ```

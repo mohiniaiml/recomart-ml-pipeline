@@ -1,7 +1,8 @@
 {
   "paths": {
     "data_lake": "../data_lake",
-    "simulator_output": "../simulators/output"
+    "simulator_output": "../simulators/output",
+    "features_db":"../features/features.db"
   },
   "storage": {
     "type": "local",
