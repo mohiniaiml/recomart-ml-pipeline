@@ -214,5 +214,46 @@ curl "http://127.0.0.1:5001/recommend?user_id=1&top_n=5"
 
 ---
 
+## 🔷 Orchestration
+
+▶️ Run
+
+```
+python -m src.orchestration.pipeline
+```
+
+### 📊 Example Output
+
+```
+Starting full pipeline...
+Running ingestion...
+Ingestion completed
+Running bronze processing...
+Bronze completed
+Running silver transformation...
+Silver completed
+Running feature pipeline...
+Features completed
+Running model training...
+Training completed
+Pipeline completed successfully!
+```
+
+### Prefect UI (Monitoring)
+
+Start Prefect server:
+
+```
+prefect server start
+```
+
+Open UI
+
+```
+http://127.0.0.1:4200
+```
+
+---
+
 ## 👩‍💻 Authors
 Group 47

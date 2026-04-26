@@ -171,7 +171,7 @@ def main():
             output_path=output_path
         )
 
-        print(f"Silver created → {output_path}")
+        print(f"Silver created -> {output_path}")
 
 
 if __name__ == "__main__":

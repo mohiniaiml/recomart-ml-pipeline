@@ -149,7 +149,7 @@ def run_pipeline():
         output_path=DB_PATH
     )
 
-    print(f"Stored features → {DB_PATH}")
+    print(f"Stored features -> {DB_PATH}")
     print(f"[{datetime.now()}] Feature pipeline completed")
 
 

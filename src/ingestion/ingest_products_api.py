@@ -33,14 +33,17 @@ def ingest():
             output_path=out_path
         )
 
-        print(f"Fetched {len(df)} products → {out_path}")
+        print(f"Fetched {len(df)} products -> {out_path}")
     except Exception as e:
         print(f"Product ingestion failed: {e}")
 
-def run(interval_sec=60):
-    while True:
+def run(interval_sec=60, loop=False):
+    if loop:
+        while True:
+            ingest()
+            time.sleep(interval_sec)
+    else:
         ingest()
-        time.sleep(interval_sec)
 
 if __name__ == "__main__":
-    run()
+    run(loop=False)

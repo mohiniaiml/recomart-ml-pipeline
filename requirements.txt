@@ -11,17 +11,24 @@ scikit-learn==1.4.2
 # Experiment tracking
 mlflow==2.12.1
 
-# API (for product mock service)
+# API
 flask==3.0.3
 
-# Visualization (EDA)
+# Visualization
 matplotlib==3.8.4
 
-# HTTP requests
+# HTTP
 requests==2.32.3
 
-# Config handling
+# Config
 PyYAML==6.0.2
 
-# AWS support (optional)
+# AWS (optional)
 boto3==1.34.122
+
+# Orchestration
+prefect==2.19.5
+
+# Critical fix for Prefect dependency
+griffe<0.38
+pydantic<2

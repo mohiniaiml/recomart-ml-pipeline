@@ -87,7 +87,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
                     target_file = os.path.join(target_dir, file_name)
                     shutil.copy(file_path, target_file)
 
-                    print(f"[LOCAL] {file_name} → {target_dir}")
+                    print(f"[LOCAL] {file_name} -> {target_dir}")
 
                     # Lineage logging
                     log_lineage(
@@ -108,7 +108,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
                     s3_key = f"{base_path}/{partition_path}/{file_name}"
                     s3.upload_file(file_path, bucket, s3_key)
 
-                    print(f"[S3] {file_name} → s3://{bucket}/{s3_key}")
+                    print(f"[S3] {file_name} -> s3://{bucket}/{s3_key}")
 
                     # Lineage logging
                     log_lineage(

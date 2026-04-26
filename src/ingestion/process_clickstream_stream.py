@@ -52,9 +52,9 @@ def process_batch(batch_lines):
         transformation="stream processing",
         output_path=out_path
     )
-    print(f"Wrote {len(df)} events → {out_path}")
+    print(f"Wrote {len(df)} events -> {out_path}")
 
-def run(poll_sec=5, batch_size=100):
+def run(poll_sec=5, batch_size=100, loop=False):
     last_off = read_offset()
     print(f"Starting from offset {last_off}")
 
@@ -79,7 +79,8 @@ def run(poll_sec=5, batch_size=100):
             write_offset(new_off)
             last_off = new_off
         else:
-            time.sleep(poll_sec)
+            if loop:
+                time.sleep(poll_sec)
 
 if __name__ == "__main__":
-    run()
+    run(loop=False)

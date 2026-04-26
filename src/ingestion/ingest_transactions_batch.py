@@ -35,12 +35,15 @@ def ingest():
         output_path=out_path
     )
 
-    print(f"Ingested {len(df)} rows → {out_path}")
+    print(f"Ingested {len(df)} rows -> {out_path}")
 
-def run(interval_sec=30):
-    while True:
+def run(interval_sec=30, loop=False):
+    if loop:
+        while True:
+            ingest()
+            time.sleep(interval_sec)
+    else:
         ingest()
-        time.sleep(interval_sec)
 
 if __name__ == "__main__":
-    run()
+    run(loop=False)
