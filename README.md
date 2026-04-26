@@ -184,5 +184,35 @@ python -m src.features.store.demo
 
 ---
 
+## 🔷 Model Training
+
+▶️ Run
+
+```
+python -m src.models.train_model
+```
+
+### 📊 View experiments
+
+```
+mlflow ui
+```
+
+### Recommendation API
+
+Start API
+
+```
+python -m src.api.recommendation_api
+```
+
+Call API
+
+```
+curl "http://127.0.0.1:5001/recommend?user_id=1&top_n=5"
+```
+
+---
+
 ## 👩‍💻 Authors
 Group 47
