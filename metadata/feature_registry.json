@@ -1,0 +1,7 @@
+{
+    "activity_count": {
+        "source": "user interaction dataset",
+        "transformation": "count of interactions per user",
+        "version": "2026-04-29T18:20:10.266663"
+    }
+}
