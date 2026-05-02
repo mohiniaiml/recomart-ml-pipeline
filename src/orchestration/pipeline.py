@@ -18,12 +18,23 @@ def run_ingestion():
     logger = get_run_logger()
     logger.info("Running ingestion...")
 
-    code, out, err = run_command("python -m src.ingestion.ingest_transactions_batch")
+    commands = [
+        "python -m src.ingestion.ingest_transactions_batch",
+        "python -m src.ingestion.process_clickstream_stream",
+        "python -m src.ingestion.ingest_products_api"   # or ingestion if you kept it there
+    ]
 
-    if code != 0:
-        raise Exception(f"Ingestion failed: {err}")
+    for cmd in commands:
+        logger.info(f"Running: {cmd}")
 
-    logger.info("Ingestion completed")
+        code, out, err = run_command(cmd)
+
+        if code != 0:
+            raise Exception(f"{cmd} failed:\n{err}")
+
+        logger.info(out)
+
+    logger.info("All ingestion steps completed")
 
 
 @task

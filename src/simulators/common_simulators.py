@@ -30,3 +30,6 @@ def get_random_product():
 
 def generate_event_id():
     return f"{datetime.utcnow().timestamp()}_{random.randint(1000,9999)}"
+
+def get_products_by_category(category):
+    return CATEGORIES.get(category, [])

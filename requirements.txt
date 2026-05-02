@@ -32,3 +32,5 @@ prefect==2.19.5
 # Critical fix for Prefect dependency
 griffe<0.38
 pydantic<2
+
+streamlit==1.35.0

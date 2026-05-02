@@ -31,7 +31,18 @@ def write_offset(off):
 def process_batch(batch_lines):
     if not batch_lines:
         return
-    records = [json.loads(x) for x in batch_lines]
+    records = []
+
+    for line in batch_lines:
+        line = line.strip()
+
+        if not line:
+            continue  # skip empty lines
+
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            print(f"Skipping invalid JSON line: {line}")
     df = pd.DataFrame(records)
 
     part = today_partition()
@@ -59,11 +70,14 @@ def run(poll_sec=5, batch_size=100, loop=False):
     print(f"Starting from offset {last_off}")
 
     while True:
+        print(f"In loop {loop}")
         if not os.path.exists(SRC_FILE):
+            print(f"Source file doesn't exist {SRC_FILE}")
             time.sleep(poll_sec)
             continue
 
         with open(SRC_FILE, "r") as f:
+            print(f"seeking {last_off}")
             f.seek(last_off)
             lines = []
             for _ in range(batch_size):
@@ -75,12 +89,17 @@ def run(poll_sec=5, batch_size=100, loop=False):
             new_off = f.tell()
 
         if lines:
+            print(f"Processing lines {new_off}")
             process_batch(lines)
             write_offset(new_off)
             last_off = new_off
         else:
             if loop:
+                print(f"In loop {loop} sleep")
                 time.sleep(poll_sec)
+            else:
+                break
 
 if __name__ == "__main__":
+    write_offset(0)
     run(loop=False)

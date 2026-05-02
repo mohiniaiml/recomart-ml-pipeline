@@ -1,9 +1,9 @@
 {
   "paths": {
-    "data_lake": "../data_lake",
-    "simulator_output": "../simulators/output",
-    "lineage_log_folder":"../lineage",
-    "recommendations_output": "../outputs/recommendations"
+    "data_lake": "../data/data_lake",
+    "simulator_output": "../data/simulators/output",
+    "lineage_log_folder":"../data/lineage",
+    "recommendations_output": "../data/outputs/recommendations"
   },
   "storage": {
     "type": "local",
