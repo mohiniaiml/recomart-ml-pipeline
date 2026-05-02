@@ -255,5 +255,15 @@ http://127.0.0.1:4200
 
 ---
 
+## 🔷 Simulation Demo UI
+
+▶️ Run
+
+```
+python -m streamlit run src/ui/demo_app.py
+```
+
+---
+
 ## 👩‍💻 Authors
 Group 47
