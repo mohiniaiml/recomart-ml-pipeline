@@ -1,38 +1,56 @@
-# simulators/transaction_simulator.py
-import csv, random, time, os
-from src.common.utils import ensure_dir, now_ts
+import os
+import pandas as pd
+import time
+import random
+from datetime import datetime
+
+from src.simulators.common_simulators import (
+    NUM_USERS,
+    get_preferred_product,
+    get_random_product,
+    generate_event_id
+)
 from src.config.config_loader import load_config
 
 config = load_config()
 
 simulator_output = config["paths"]["simulator_output"]
-OUT_FILE = os.path.join(simulator_output, "transactions_generated.csv")
+OUTPUT_FILE = os.path.join(simulator_output, "transactions_generated.csv")
 
-def init_file():
-    ensure_dir(simulator_output)
-    if not os.path.exists(OUT_FILE):
-        with open(OUT_FILE, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["user_id","product_id","purchase_amount","rating","transaction_timestamp"])
+def generate_transaction():
+    user_id = random.randint(1, NUM_USERS)
 
-def generate_row():
-    return [
-        random.randint(1, 1000),
-        random.randint(1, 200),
-        round(random.uniform(50, 5000), 2),
-        random.choice([None, 3, 4, 5]),
-        now_ts()
-    ]
+    # 80% preference-based, 20% random
+    if random.random() < 0.8:
+        product_id = get_preferred_product(user_id)
+    else:
+        product_id = get_random_product()
 
-def run(interval_sec=5):
-    init_file()
-    print(f"Writing to {OUT_FILE}")
+    return {
+        "event_id": generate_event_id(),
+        "user_id": user_id,
+        "product_id": product_id,
+        "purchase_amount": round(random.uniform(10, 500), 2),
+        "rating": random.choice([3, 4, 5]),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+def run(batch_size=50, interval=10):
+    os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
+
     while True:
-        with open(OUT_FILE, "a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(generate_row())
-        print("Generated 1 transaction")
-        time.sleep(interval_sec)
+        data = [generate_transaction() for _ in range(batch_size)]
+        df = pd.DataFrame(data)
+
+        if os.path.exists(OUTPUT_FILE):
+            df.to_csv(OUTPUT_FILE, mode="a", header=False, index=False)
+        else:
+            df.to_csv(OUTPUT_FILE, index=False)
+
+        print(f"Generated {batch_size} transactions -> {OUTPUT_FILE}")
+        time.sleep(interval)
+
 
 if __name__ == "__main__":
     run()
