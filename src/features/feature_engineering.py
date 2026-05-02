@@ -10,14 +10,12 @@ config = load_config()
 
 data_lake_path = config["paths"]["data_lake"]
 
-# Per dataset versions
+# Versions
 TX_VERSION = config["versions"]["transactions"]
 CS_VERSION = config["versions"]["clickstream"]
-
-# Feature version (independent)
+PR_VERSION = config["versions"]["products"]
 FEATURE_VERSION = config["versions"]["features"]
 
-# Use SILVER layer (not raw)
 SILVER_BASE = os.path.join(data_lake_path, "silver")
 
 DB_PATH = os.path.join(
@@ -27,6 +25,7 @@ DB_PATH = os.path.join(
     FEATURE_VERSION,
     "features.db"
 )
+
 
 # -----------------------------
 # Get latest partition
@@ -40,31 +39,51 @@ def get_latest_partition(path):
 
 
 # -----------------------------
-# Load data (version-aware)
+# Load data (JOIN metadata)
 # -----------------------------
 def load_data():
+
     tx_path = os.path.join(SILVER_BASE, "transactions", TX_VERSION)
     cs_path = os.path.join(SILVER_BASE, "clickstream", CS_VERSION)
+    pr_path = os.path.join(SILVER_BASE, "products", PR_VERSION)
 
     t_part = get_latest_partition(tx_path)
     c_part = get_latest_partition(cs_path)
+    p_part = get_latest_partition(pr_path)
 
-    if not t_part or not c_part:
+    if not t_part or not c_part or not p_part:
         print("Data not ready yet")
         return None
 
     tx_file = os.path.join(tx_path, t_part, "data.parquet")
     cs_file = os.path.join(cs_path, c_part, "data.parquet")
+    pr_file = os.path.join(pr_path, p_part, "data.parquet")
 
-    if not os.path.exists(tx_file) or not os.path.exists(cs_file):
-        print(f"Missing files in latest partitions {tx_file} or {cs_file}")
+    missing_files = []
+
+    if not os.path.exists(tx_file):
+        missing_files.append(("transactions", tx_file))
+
+    if not os.path.exists(cs_file):
+        missing_files.append(("clickstream", cs_file))
+
+    if not os.path.exists(pr_file):
+        missing_files.append(("products", pr_file))
+
+    if missing_files:
+        print("Missing files in latest partitions:")
+        for name, path in missing_files:
+            print(f" - {name}: {path}")
         return None
-
+    
+    # Load
     transactions = pd.read_parquet(tx_file)
     clicks = pd.read_parquet(cs_file)
+    products = pd.read_parquet(pr_file)
 
-    # unify schema
-    # Ensure both dataframes have same columns
+    # -----------------------------
+    # Normalize schema
+    # -----------------------------
     required_cols = ["user_id", "product_id", "purchase_amount", "rating"]
 
     for col in required_cols:
@@ -73,34 +92,76 @@ def load_data():
         if col not in clicks.columns:
             clicks[col] = pd.NA
 
-    # Align column order
     transactions = transactions[required_cols]
     clicks = clicks[required_cols]
 
     transactions["event_type"] = "purchase"
+    clicks["event_type"] = "click"
 
     data = pd.concat([transactions, clicks], ignore_index=True)
 
-    return data, tx_file, cs_file
+    # -----------------------------
+    # Deduplicate
+    # -----------------------------
+    data = data.drop_duplicates()
+
+    # -----------------------------
+    # JOIN product metadata
+    # -----------------------------
+    data = data.merge(
+        products[["product_id", "category", "brand", "price"]],
+        on="product_id",
+        how="left"
+    )
+
+    return data, tx_file, cs_file, pr_file
 
 
 # -----------------------------
-# Feature generation
+# Feature Engineering
 # -----------------------------
 def generate_features(df):
 
+    # -----------------------------
+    # Derived features
+    # -----------------------------
+    df["is_purchase"] = df["purchase_amount"].notnull().astype(int)
+
+    # Category popularity
+    df["category_popularity"] = df.groupby("category")["product_id"].transform("count")
+
+    # Price normalization
+    if "price" in df.columns:
+        df["price_norm"] = (df["price"] - df["price"].min()) / (
+            df["price"].max() - df["price"].min() + 1e-9
+        )
+
+    # -----------------------------
+    # USER FEATURES
+    # -----------------------------
     user_features = df.groupby("user_id").agg(
         activity_count=("product_id", "count"),
+        purchase_count=("is_purchase", "sum"),
         avg_rating=("rating", "mean"),
-        purchase_count=("purchase_amount", lambda x: x.notnull().sum())
+        avg_price=("price", "mean")
     ).reset_index()
 
+    # -----------------------------
+    # ITEM FEATURES
+    # -----------------------------
     item_features = df.groupby("product_id").agg(
         item_popularity=("user_id", "count"),
+        purchase_count=("is_purchase", "sum"),
         avg_rating=("rating", "mean"),
-        purchase_count=("purchase_amount", lambda x: x.notnull().sum())
+        category=("category", "first"),
+        brand=("brand", "first"),
+        avg_price=("price", "mean"),
+        category_popularity=("category_popularity", "mean")
     ).reset_index()
 
+    # -----------------------------
+    # INTERACTION FEATURES (USED BY MODEL)
+    # -----------------------------
     interaction_features = (
         df.groupby(["user_id", "product_id"])
         .size()
@@ -111,9 +172,10 @@ def generate_features(df):
 
 
 # -----------------------------
-# Store features (version-aware)
+# Store features
 # -----------------------------
 def store_features(user_df, item_df, inter_df):
+
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
     conn = sqlite3.connect(DB_PATH)
@@ -135,17 +197,17 @@ def run_pipeline():
     if result is None:
         return
 
-    df, tx_source, cs_source = result
+    df, tx_source, cs_source, pr_source = result
 
     user_df, item_df, inter_df = generate_features(df)
     store_features(user_df, item_df, inter_df)
 
-    # 🔷 Lineage logging (multi-source)
+    # Lineage
     log_lineage(
         dataset_name="features",
         version=FEATURE_VERSION,
-        source=f"{tx_source} + {cs_source}",
-        transformation="aggregation: user/item/interaction features",
+        source=f"{tx_source} + {cs_source} + {pr_source}",
+        transformation="aggregation + metadata join + feature enrichment",
         output_path=DB_PATH
     )
 

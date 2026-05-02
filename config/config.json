@@ -2,7 +2,8 @@
   "paths": {
     "data_lake": "../data_lake",
     "simulator_output": "../simulators/output",
-    "lineage_log_folder":"../lineage"
+    "lineage_log_folder":"../lineage",
+    "recommendations_output": "../outputs/recommendations"
   },
   "storage": {
     "type": "local",
@@ -12,6 +13,7 @@
     "transactions": "v1",
     "clickstream": "v1",
     "products": "v1",
-    "features": "v1"
+    "features": "v1",
+    "recommendations": "v1"
   }
 }
