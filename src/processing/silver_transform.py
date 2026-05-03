@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 
 from src.config.config_loader import load_config
+from src.processing.eda_report import generate_eda_report
 from src.lineage.lineage_logger import log_lineage
 
 
@@ -102,26 +103,95 @@ def save_silver(df, base_path, dataset, version):
 # EDA (optional per dataset)
 # -----------------------------
 def run_eda(df, dataset, output_dir="reports/eda"):
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Image
+    )
+    from reportlab.lib.styles import getSampleStyleSheet
+
     os.makedirs(output_dir, exist_ok=True)
 
+    styles = getSampleStyleSheet()
+    content = []
+
+    # -----------------------------
+    # Title
+    # -----------------------------
+    content.append(Paragraph(f"{dataset.upper()} - EDA Report", styles['Title']))
+    content.append(Spacer(1, 10))
+
+    # -----------------------------
+    # Summary
+    # -----------------------------
+    content.append(Paragraph(f"Rows: {len(df)}", styles['Normal']))
+    content.append(Paragraph(f"Columns: {len(df.columns)}", styles['Normal']))
+    content.append(Spacer(1, 10))
+
+    image_paths = []
+
+    # -----------------------------
+    # Rating distribution
+    # -----------------------------
     if 'rating' in df.columns:
         plt.figure()
         df['rating'].hist()
         plt.title(f"{dataset} Rating Distribution")
-        plt.savefig(f"{output_dir}/{dataset}_rating_distribution.png")
 
+        path = f"{output_dir}/{dataset}_rating.png"
+        plt.savefig(path)
+        plt.close()
+
+        image_paths.append(path)
+
+        content.append(Paragraph("Rating Distribution", styles['Heading2']))
+        content.append(Image(path, width=400, height=250))
+        content.append(Spacer(1, 10))
+
+    # -----------------------------
+    # Top products
+    # -----------------------------
     if 'product_id' in df.columns:
         plt.figure()
         df['product_id'].value_counts().head(20).plot(kind='bar')
         plt.title(f"{dataset} Top Items")
-        plt.savefig(f"{output_dir}/{dataset}_item_popularity.png")
 
+        path = f"{output_dir}/{dataset}_top_items.png"
+        plt.savefig(path)
+        plt.close()
+
+        image_paths.append(path)
+
+        content.append(Paragraph("Top Products", styles['Heading2']))
+        content.append(Image(path, width=400, height=250))
+        content.append(Spacer(1, 10))
+
+    # -----------------------------
+    # Missing values insight
+    # -----------------------------
+    missing = df.isnull().mean().sort_values(ascending=False).head(5)
+
+    content.append(Paragraph("Top Missing Columns", styles['Heading2']))
+    for col, val in missing.items():
+        content.append(Paragraph(f"{col}: {round(val*100,2)}%", styles['Normal']))
+
+    # -----------------------------
+    # Save PDF
+    # -----------------------------
+    pdf_path = f"{output_dir}/{dataset}_eda_report.pdf"
+
+    doc = SimpleDocTemplate(pdf_path)
+    doc.build(content)
+
+    print(f"EDA report generated: {pdf_path}")
+
+    return pdf_path
 
 # -----------------------------
 # Main Pipeline (dataset-wise)
 # -----------------------------
 def main():
     config = load_config()
+
+    datasets_map = {}
 
     data_lake = config["paths"]["data_lake"]
     bronze_base = os.path.join(data_lake, config["storage"]["base_path"])
@@ -157,7 +227,9 @@ def main():
         df = encode_data(df)
         df = normalize_data(df)
 
-        run_eda(df, dataset)
+        #run_eda(df, dataset)
+        datasets_map[dataset] = df
+
 
         # Save silver
         output_path = save_silver(df, silver_base, dataset, version)
@@ -172,6 +244,15 @@ def main():
         )
 
         print(f"Silver created -> {output_path}")
+    
+    eda_path = generate_eda_report(datasets_map)
+    log_lineage(
+        dataset_name="eda_report",
+        version="v1",
+        source="silver",
+        transformation="EDA analysis",
+        output_path=eda_path
+    )
 
 
 if __name__ == "__main__":
