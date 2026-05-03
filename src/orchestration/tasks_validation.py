@@ -3,9 +3,9 @@ from prefect import task, get_run_logger
 
 from src.config.config_loader import load_config
 from src.validation.validate_bronze import (
-    load_bronze_data,
+    load_bronze_datasets,
     generate_profile,
-    run_validation,
+    validate_dataset,
     generate_pdf_report
 )
 
@@ -45,41 +45,49 @@ def run_validation_task():
 
     logger.info(f"Bronze path: {bronze_path}")
     logger.info(f"Validation threshold: {validation_threshold}")
-
+    datasets = {}
+    all_results = {}
     # -----------------------------
     # Load data
     # -----------------------------
     try:
-        df = load_bronze_data(bronze_path)
-        logger.info(f"Loaded {len(df)} rows, {len(df.columns)} columns")
+        datasets = load_bronze_datasets(bronze_path)
     except Exception as e:
+        logger.error(f"Failed to load Bronze data: {e}")
         raise Exception(f"Failed to load Bronze data: {e}")
 
-    # -----------------------------
-    # Profiling
-    # -----------------------------
-    profile_df = generate_profile(df)
-    logger.info("Generated column profiling")
+    for name, df in datasets.items():
+        logger.info(f"For {name}:Loaded {len(df)} rows, {len(df.columns)} columns")
+        # -----------------------------
+        # Profiling
+        # -----------------------------
+        profile_df = generate_profile(df)
+        logger.info("Generated column profiling")
 
-    # -----------------------------
-    # Validation
-    # -----------------------------
-    results, _, _ = run_validation(df)
+        # -----------------------------
+        # Validation
+        # -----------------------------
+        results, score = validate_dataset(df, name)
 
-    pass_count = sum([1 for _, status in results if status])
-    total_checks = len(results)
-    score = pass_count / total_checks if total_checks > 0 else 0
+        all_results[name] = {
+            "df": df,
+            "profile": profile_df,
+            "results": results,
+            "score": score
+        }
 
-    logger.info(f"Validation score: {score:.2f}")
-    logger.info(f"Checks passed: {pass_count}/{total_checks}")
+        # pass_count = sum([1 for _, status in results if status])
+        # total_checks = len(results)
+        # score = pass_count / total_checks if total_checks > 0 else 0
+
+        logger.info(f"Validation score: {score:.2f}")
+        # logger.info(f"Checks passed: {pass_count}/{total_checks}")
 
     # -----------------------------
     # Generate report
     # -----------------------------
     generate_pdf_report(
-        df,
-        profile_df,
-        results,
+        all_results=all_results,
         output_path=report_path
     )
 

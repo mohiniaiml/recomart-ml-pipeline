@@ -3,6 +3,9 @@ import sqlite3
 import os
 from datetime import datetime
 
+from src.common.logger import get_logger
+logger = get_logger("feature_engineering")
+
 from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
@@ -52,7 +55,7 @@ def load_data():
     p_part = get_latest_partition(pr_path)
 
     if not t_part or not c_part or not p_part:
-        print("Data not ready yet")
+        logger.warning("Data not ready yet")
         return None
 
     tx_file = os.path.join(tx_path, t_part, "data.parquet")
@@ -71,9 +74,9 @@ def load_data():
         missing_files.append(("products", pr_file))
 
     if missing_files:
-        print("Missing files in latest partitions:")
+        logger.warning("Missing files in latest partitions:")
         for name, path in missing_files:
-            print(f" - {name}: {path}")
+            logger.warning(f" - {name}: {path}")
         return None
     
     # Load
@@ -191,7 +194,7 @@ def store_features(user_df, item_df, inter_df):
 # Main pipeline
 # -----------------------------
 def run_pipeline():
-    print(f"[{datetime.now()}] Running feature pipeline...")
+    logger.info(f"[{datetime.now()}] Running feature pipeline...")
 
     result = load_data()
     if result is None:
@@ -211,8 +214,8 @@ def run_pipeline():
         output_path=DB_PATH
     )
 
-    print(f"Stored features -> {DB_PATH}")
-    print(f"[{datetime.now()}] Feature pipeline completed")
+    logger.info(f"Stored features -> {DB_PATH}")
+    logger.info(f"[{datetime.now()}] Feature pipeline completed")
 
 
 if __name__ == "__main__":

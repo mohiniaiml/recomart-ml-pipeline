@@ -19,6 +19,8 @@ SILVER_BASE = os.path.join(DATA_LAKE, "silver")
 BRONZE_PRODUCTS_PATH = os.path.join(BRONZE_BASE, "source=products", f"version={PR_VERSION}", f"type=raw")
 SILVER_PRODUCTS_BASE = os.path.join(SILVER_BASE, "products", PR_VERSION)
 
+from src.common.logger import get_logger
+logger = get_logger("processing")
 
 # -----------------------------
 # Load bronze data
@@ -40,10 +42,10 @@ def load_bronze_products():
                     dfs.append(df)
 
                 except Exception as e:
-                    print(f"Skipping {path}: {e}")
+                    logger.warning(f"Skipping {path}: {e}")
 
     if not dfs:
-        print(f"No bronze product data found at {BRONZE_PRODUCTS_PATH}")
+        logger.warning(f"No bronze product data found at {BRONZE_PRODUCTS_PATH}")
         return None
 
     return pd.concat(dfs, ignore_index=True)
@@ -53,7 +55,7 @@ def load_bronze_products():
 # Clean data
 # -----------------------------
 def clean_products(df):
-    print("Cleaning product data...")
+    logger.info("Cleaning product data...")
 
     # Drop duplicates by product_id
     df = df.drop_duplicates(subset=["product_id"])
@@ -89,7 +91,7 @@ def write_silver(df):
 
     df.to_parquet(file_path, index=False)
 
-    print(f"Saved silver products -> {file_path}")
+    logger.info(f"Saved silver products -> {file_path}")
 
     return file_path
 

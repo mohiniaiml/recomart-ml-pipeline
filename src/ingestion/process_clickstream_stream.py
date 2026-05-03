@@ -5,6 +5,10 @@ from src.common.utils import ensure_dir, today_partition
 from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
+from src.common.logger import get_logger
+logger = get_logger("ingestion")
+
+
 config = load_config()
 
 simulator_output = config["paths"]["simulator_output"]
@@ -42,7 +46,7 @@ def process_batch(batch_lines):
         try:
             records.append(json.loads(line))
         except json.JSONDecodeError:
-            print(f"Skipping invalid JSON line: {line}")
+            logger.warning(f"Skipping invalid JSON line: {line}")
     df = pd.DataFrame(records)
 
     part = today_partition()
@@ -63,21 +67,19 @@ def process_batch(batch_lines):
         transformation="stream processing",
         output_path=out_path
     )
-    print(f"Wrote {len(df)} events -> {out_path}")
+    logger.info(f"Wrote {len(df)} events -> {out_path}")
 
 def run(poll_sec=5, batch_size=100, loop=False):
     last_off = read_offset()
-    print(f"Starting from offset {last_off}")
+    logger.info(f"Starting from offset {last_off}")
 
     while True:
-        print(f"In loop {loop}")
         if not os.path.exists(SRC_FILE):
-            print(f"Source file doesn't exist {SRC_FILE}")
+            logger.warning(f"Source file doesn't exist {SRC_FILE}")
             time.sleep(poll_sec)
             continue
 
         with open(SRC_FILE, "r") as f:
-            print(f"seeking {last_off}")
             f.seek(last_off)
             lines = []
             for _ in range(batch_size):
@@ -89,13 +91,11 @@ def run(poll_sec=5, batch_size=100, loop=False):
             new_off = f.tell()
 
         if lines:
-            print(f"Processing lines {new_off}")
             process_batch(lines)
             write_offset(new_off)
             last_off = new_off
         else:
             if loop:
-                print(f"In loop {loop} sleep")
                 time.sleep(poll_sec)
             else:
                 break

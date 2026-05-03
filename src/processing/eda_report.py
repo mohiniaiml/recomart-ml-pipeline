@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
+from src.common.logger import get_logger
+logger = get_logger("processing")
 
 # -----------------------------
 # Utility: Save Plotly Figure
@@ -135,6 +137,6 @@ def generate_eda_report(datasets, output_path="reports/eda/eda_report.html"):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("\n".join(html_content))
 
-    print(f"EDA report generated: {output_path}")
+    logger.info(f"EDA report generated: {output_path}")
 
     return output_path

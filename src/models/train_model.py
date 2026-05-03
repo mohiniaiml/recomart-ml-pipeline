@@ -10,6 +10,9 @@ import mlflow.sklearn
 from src.config.config_loader import load_config
 from src.models.evaluate import precision_at_k, recall_at_k, ndcg_at_k
 
+from src.common.logger import get_logger
+logger = get_logger("model_training")
+
 # -----------------------------
 # Config
 # -----------------------------
@@ -205,7 +208,7 @@ def save_recommendations(pred_df, train_matrix, train_df, item_df, k=5):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     df.to_csv(OUTPUT_FILE, index=False)
 
-    print(f"Saved recommendations -> {OUTPUT_FILE}")
+    logger.info(f"Saved recommendations -> {OUTPUT_FILE}")
 
 
 # -----------------------------
@@ -215,25 +218,25 @@ def main():
 
     mlflow.set_experiment("recommender-system")
 
-    print("Loading data...")
+    logger.info("Loading data...")
     interactions, items = load_data()
 
-    print("Splitting data...")
+    logger.info("Splitting data...")
     train_df, test_df = train_test_split(interactions)
 
-    print("Building matrix...")
+    logger.info("Building matrix...")
     train_matrix = build_matrix(train_df)
 
-    print("Training model...")
+    logger.info("Training model...")
     model, pred_df = train_svd(train_matrix)
 
-    print("Evaluating model...")
+    logger.info("Evaluating model...")
     metrics = evaluate_model(pred_df, train_matrix, train_df, test_df, items)
 
     for k, v in metrics.items():
-        print(f"{k}: {v:.4f}")
+        logger.info(f"{k}: {v:.4f}")
 
-    print("Saving recommendations...")
+    logger.info("Saving recommendations...")
     save_recommendations(pred_df, train_matrix, train_df, items)
 
     with mlflow.start_run():
@@ -241,7 +244,7 @@ def main():
         mlflow.log_metrics(metrics)
         mlflow.sklearn.log_model(model, "svd_model")
 
-    print("Training completed.")
+    logger.info("Training completed.")
 
 
 if __name__ == "__main__":

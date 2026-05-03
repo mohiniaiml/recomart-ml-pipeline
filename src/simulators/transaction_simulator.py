@@ -4,6 +4,9 @@ import time
 import random
 from datetime import datetime
 
+from src.common.logger import get_logger
+logger = get_logger("simulator")
+
 from src.simulators.common_simulators import (
     NUM_USERS,
     get_preferred_product,
@@ -48,7 +51,7 @@ def run(batch_size=50, interval=10):
         else:
             df.to_csv(OUTPUT_FILE, index=False)
 
-        print(f"Generated {batch_size} transactions -> {OUTPUT_FILE}")
+        logger.info(f"Generated {batch_size} transactions -> {OUTPUT_FILE}")
         time.sleep(interval)
 
 

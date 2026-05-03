@@ -10,6 +10,8 @@ from reportlab.lib.styles import getSampleStyleSheet
 
 from src.config.config_loader import load_config
 
+from src.common.logger import get_logger
+logger = get_logger("validation")
 
 # -----------------------------
 # Schema Definitions
@@ -51,7 +53,7 @@ def load_bronze_datasets(base_path):
                 datasets.setdefault(key, []).append(df)
 
             except Exception as e:
-                print(f"Skipping {path}: {e}")
+                logger.warning(f"Skipping {path}: {e}")
 
     # merge each dataset
     for k in datasets:
@@ -179,7 +181,7 @@ def generate_pdf_report(all_results, output_path):
 
     doc.build(content)
 
-    print(f"Report saved at {output_path}")
+    logger.info(f"Report saved at {output_path}")
 
 
 # -----------------------------
@@ -193,19 +195,19 @@ def main():
         config["storage"]["base_path"]
     )
 
-    print(f"Reading Bronze data from: {bronze_path}")
+    logger.info(f"Reading Bronze data from: {bronze_path}")
 
     datasets = load_bronze_datasets(bronze_path)
 
     all_results = {}
 
     for name, df in datasets.items():
-        print(f"\nValidating {name}")
+        logger.info(f"\nValidating {name}")
 
         profile = generate_profile(df)
         results, score = validate_dataset(df, name)
 
-        print(f"{name} score: {round(score*100,2)}%")
+        logger.info(f"{name} score: {round(score*100,2)}%")
 
         all_results[name] = {
             "df": df,

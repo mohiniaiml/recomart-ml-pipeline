@@ -6,6 +6,9 @@ from datetime import datetime
 from src.config.config_loader import load_config
 from src.lineage.lineage_logger import log_lineage
 
+from src.common.logger import get_logger
+logger = get_logger("processing")
+
 config = load_config()
 
 DATA_LAKE = config["paths"]["data_lake"]
@@ -45,7 +48,7 @@ def save_silver(df):
     out_file = os.path.join(SILVER_PATH, "products.csv")
 
     df.to_csv(out_file, index=False)
-    print(f"Saved silver products -> {out_file}")
+    logger.info(f"Saved silver products -> {out_file}")
 
 
 def store_in_db(df):
@@ -56,7 +59,7 @@ def store_in_db(df):
     df.to_sql("products", conn, if_exists="replace", index=False)
 
     conn.close()
-    print("Stored products in DB")
+    logger.info("Stored products in DB")
 
 
 def run():

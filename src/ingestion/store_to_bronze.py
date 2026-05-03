@@ -4,6 +4,9 @@ from datetime import datetime
 from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
+from src.common.logger import get_logger
+logger = get_logger("ingestion")
+
 # Optional cloud import
 try:
     import boto3
@@ -50,10 +53,10 @@ def move_to_bronze_configurable(config_path="config/config.json"):
         source_path = os.path.join(input_base, "raw", source, version)
 
         if not os.path.exists(source_path):
-            print(f"Skipping {source}, path not found: {source_path}")
+            logger.warning(f"Skipping {source}, path not found: {source_path}")
             continue
         
-        print(f"Processing {source} version: {version}")
+        logger.info(f"Processing {source} version: {version}")
         
         # Iterate datetime folders
         for dt_folder in os.listdir(source_path):
@@ -87,7 +90,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
                     target_file = os.path.join(target_dir, file_name)
                     shutil.copy(file_path, target_file)
 
-                    print(f"[LOCAL] {file_name} -> {target_dir}")
+                    logger.info(f"[LOCAL] {file_name} -> {target_dir}")
 
                     # Lineage logging
                     log_lineage(
@@ -108,7 +111,7 @@ def move_to_bronze_configurable(config_path="config/config.json"):
                     s3_key = f"{base_path}/{partition_path}/{file_name}"
                     s3.upload_file(file_path, bucket, s3_key)
 
-                    print(f"[S3] {file_name} -> s3://{bucket}/{s3_key}")
+                    logger.info(f"[S3] {file_name} -> s3://{bucket}/{s3_key}")
 
                     # Lineage logging
                     log_lineage(

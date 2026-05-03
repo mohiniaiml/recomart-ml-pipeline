@@ -9,3 +9,4 @@ reports/
 
 # Ignore MLflow runs
 mlruns/
+logs/

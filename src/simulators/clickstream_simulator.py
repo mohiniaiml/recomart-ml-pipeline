@@ -7,6 +7,10 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
+from src.common.logger import get_logger
+logger = get_logger("simulator")
+
+
 from src.simulators.common_simulators import (
     NUM_USERS,
     get_preferred_product,
@@ -50,7 +54,7 @@ def run(batch_size=100, interval=5):
                 event = generate_click_event()
                 f.write(json.dumps(event) + "\n")
 
-        print(f"Generated {batch_size} click events -> {OUTPUT_FILE}")
+        logger.info(f"Generated {batch_size} click events -> {OUTPUT_FILE}")
         time.sleep(interval)
 
 def generate_clickstream(num_events, user_id, category):
@@ -68,7 +72,7 @@ def generate_clickstream(num_events, user_id, category):
     product_ids = get_products_by_category(category)
 
     if not product_ids:
-        print(f"No products found for category: {category}")
+        logger.error(f"No products found for category: {category}")
         return None
 
     # -----------------------------
@@ -92,7 +96,7 @@ def generate_clickstream(num_events, user_id, category):
         for event in events:
             f.write(json.dumps(event) + "\n")
 
-    print(f"Generated {num_events} events → {output_file}")
+    logger.info(f"Generated {num_events} events → {output_file}")
 
     return output_file
 

@@ -8,6 +8,8 @@ from src.config.config_loader import load_config
 from src.processing.eda_report import generate_eda_report
 from src.lineage.lineage_logger import log_lineage
 
+from src.common.logger import get_logger
+logger = get_logger("processing")
 
 # -----------------------------
 # Load Bronze Data (dataset + version aware)
@@ -30,7 +32,7 @@ def load_bronze_data(base_path):
                 all_data.append(df)
 
             except Exception as e:
-                print(f"Skipping {path}: {e}")
+                logger.info(f"Skipping {path}: {e}")
 
     if not all_data:
         return None
@@ -181,7 +183,7 @@ def run_eda(df, dataset, output_dir="reports/eda"):
     doc = SimpleDocTemplate(pdf_path)
     doc.build(content)
 
-    print(f"EDA report generated: {pdf_path}")
+    logger.info(f"EDA report generated: {pdf_path}")
 
     return pdf_path
 
@@ -212,10 +214,10 @@ def main():
         )
 
         if not os.path.exists(bronze_path):
-            print(f"Skipping {dataset}, no bronze data")
+            logger.info(f"Skipping {dataset}, no bronze data")
             continue
 
-        print(f"Processing {dataset} version {version}")
+        logger.info(f"Processing {dataset} version {version}")
 
         df = load_bronze_data(bronze_path)
 
@@ -243,7 +245,7 @@ def main():
             output_path=output_path
         )
 
-        print(f"Silver created -> {output_path}")
+        logger.info(f"Silver created -> {output_path}")
     
     eda_path = generate_eda_report(datasets_map)
     log_lineage(

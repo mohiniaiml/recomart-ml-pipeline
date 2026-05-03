@@ -4,6 +4,9 @@ from src.common.utils import ensure_dir, today_partition
 from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
 
+from src.common.logger import get_logger
+logger = get_logger("ingestion")
+
 config = load_config()
 
 simulator_output = config["paths"]["simulator_output"]
@@ -15,7 +18,7 @@ DL_BASE = os.path.join(data_lake_path, "raw", "transactions", VERSION)
 
 def ingest():
     if not os.path.exists(SRC_FILE):
-        print("No source file yet.")
+        logger.error("No source file yet.")
         return
 
     df = pd.read_csv(SRC_FILE)
@@ -35,7 +38,7 @@ def ingest():
         output_path=out_path
     )
 
-    print(f"Ingested {len(df)} rows -> {out_path}")
+    logger.info(f"Ingested {len(df)} rows -> {out_path}")
 
 def run(interval_sec=30, loop=False):
     if loop:

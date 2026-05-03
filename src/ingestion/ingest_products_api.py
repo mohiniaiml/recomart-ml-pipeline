@@ -3,6 +3,8 @@ import requests, os, pandas as pd, time
 from src.common.utils import ensure_dir, today_partition
 from src.lineage.lineage_logger import log_lineage
 from src.config.config_loader import load_config
+from src.common.logger import get_logger
+logger = get_logger("ingestion")
 
 config = load_config()
 VERSION = config["versions"]["products"]
@@ -33,9 +35,9 @@ def ingest():
             output_path=out_path
         )
 
-        print(f"Fetched {len(df)} products -> {out_path}")
+        logger.info(f"Fetched {len(df)} products -> {out_path}")
     except Exception as e:
-        print(f"Product ingestion failed: {e}")
+        logger.error(f"Product ingestion failed: {e}")
 
 def run(interval_sec=60, loop=False):
     if loop:
