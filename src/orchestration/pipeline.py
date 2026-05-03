@@ -1,4 +1,5 @@
 from prefect import flow, task, get_run_logger
+from src.orchestration.tasks_validation import run_validation_task
 import subprocess
 
 
@@ -100,6 +101,7 @@ def main_pipeline():
 
     run_ingestion()
     run_bronze()
+    run_validation_task()
     run_silver()
     run_features()
     run_training()

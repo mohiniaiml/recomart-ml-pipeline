@@ -15,5 +15,9 @@
     "products": "v1",
     "features": "v1",
     "recommendations": "v1"
+  },
+    "validation": {
+    "threshold": 0.8,
+    "fail_on_error": false
   }
 }
